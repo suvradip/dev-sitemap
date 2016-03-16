@@ -147,7 +147,7 @@ GST.readContents = (function(fcobj){
       href = anchors[index].href;
       
       if(href !== "" && href !== 'javascript:void(0)' && typeof href !== 'object' &&
-       href.indexOf('http://www.fusioncharts.com/dev') > -1 && href.indexOf('.html#') === -1) 
+       href.indexOf('http://127.0.0.1:4000/paradocs/jekyll/out/') > -1 && href.indexOf('.html#') === -1) 
         links.push(href);
     } //end of for loop*/
 
