@@ -38,9 +38,10 @@ GST.counter = -1;
 GST.init = false;
 GST.pointer = 0;
 GST.timer = "";
+GST.retryCounter = 0;
 
 GST.sitemap = (function(links){
-  console.log('here');
+  console.log('Generating sitemap');
   var data = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<urlset xmlns=\"http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9\">",
       today = (new Date()).toISOString().slice(0,10);
      
@@ -145,10 +146,15 @@ GST.readContents = (function(fcobj){
 
     for(index=0; index<anchors.length; index++) {
       href = anchors[index].href;
-      
       if(href !== "" && href !== 'javascript:void(0)' && typeof href !== 'object' &&
-       href.indexOf('http://www.fusioncharts.com/dev') > -1 && href.indexOf('.html#') === -1) 
+        href.indexOf('http://www.fusioncharts.com/') > -1 && href.indexOf('.html#') === -1) {
+        href = href.split('#')[0];
+        href = href.split('?PageSpeed=noscript')[0];
+        href = href.split('&PageSpeed=noscript')[0];
+        href = href.split("?replytocom=")[0];
+        href = href.split("&replytocom=")[0];
         links.push(href);
+      }
     } //end of for loop*/
 
     return links;
@@ -157,10 +163,20 @@ GST.readContents = (function(fcobj){
   //console.log(data.length);
   
   if( data && data !== null ) {
-    data = GST.removeDuplicate(data);
+    var index,
+        href,
+        links = [];
+
+    for(index=0; index<data.length; index++) {
+      href = data[index];
+      if(GST.filterLink(href)) 
+        links.push(href);
+    } //end of for loop*/
+
+    links = GST.removeDuplicate(links);
     var newData = [];
     newData = newData.concat(GST.linkArray);
-    newData = newData.concat(data); 
+    newData = newData.concat(links); 
     GST.linkArray = GST.removeDuplicate(newData);
     GST.log(103);
     GST.clearTimer();
@@ -172,6 +188,43 @@ GST.readContents = (function(fcobj){
     GST.openLink();
   }
 }); //end of GST.readContent
+
+GST.filterLink = (function(url){
+  var flag = true;
+
+  if(!url)
+    return false;
+
+  //this domain name allow
+  if(url.indexOf('fusioncharts.com') > -1)
+    flag = true;
+  //this section is not allowed to index
+  if(url.indexOf('fusioncharts.com/dev') > -1)
+    flag = false;
+  
+  //more types of url filtering
+  if(url.indexOf('#') > -1)
+    flag = false;
+  if(url.indexOf('mailto') > -1)
+    flag = false;
+  if(url.indexOf('?q=') > -1)
+    flag = false;
+
+  //filter files
+  if(url.indexOf('.json') > -1)
+    flag = false;
+  if(url.indexOf('.xml') > -1)
+    flag = false;
+  if(url.indexOf('.gif') > -1)
+    flag = false;
+  if(url.indexOf('.tif') > -1)
+    flag = false;
+  if(url.indexOf('eps') > -1)
+    flag = false;
+
+  return flag;
+});
+
 
 GST.escapeLink = (function(string){
 
@@ -215,12 +268,21 @@ GST.openLink = (function() {
       if (status == 'success') {
           GST.readContents();
       } else {
+        //try to open a link 5 times, if fail then proceed to next link and log this link to a file
+        if(GST.retryCounter < 5){
+          GST.retryCounter +=1;
           GST.counter -= 1;
           GST.log(106);
           GST.clearTimer();
           setTimeout(function() {
               GST.openLink();
-          }, 10000);      
+          }, 10000); 
+        } else {
+          GST.retryCounter = 0;
+          console.log("discarding this link. :(");
+          GST.fs.write("output/retry.txt", "\n"+GST.linkArray[GST.counter], 'a');
+          GST.openLink();
+        }    
       } //end of if condition
     }); //end page.open
   } else {
