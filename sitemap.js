@@ -40,7 +40,7 @@ GST.sitemap = (function(links){
     data = data + "\n        <loc>" + link + "</loc>";
     data = data + "\n        <lastmod>"+ today + "</lastmod>";
     data = data + "\n        <changefreq>weekly</changefreq>";
-    data = data + "\n        <priority>"+priority.getPriority(link)+"</priority>";
+    data = data + "\n        <priority>"+priority.get(link)+"</priority>";
     data = data + "\n    </url>";
   }
 
@@ -141,6 +141,8 @@ GST.readContents = (function(body){
         href = href.split("&replytocom=")[0];
         if (href.indexOf('/') === 0)
           href = domainName + href;
+        if(href.charAt(href.length-1) === "/")
+          href = href + "/";
 
         links.push(href);
       }

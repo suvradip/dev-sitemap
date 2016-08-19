@@ -1,5 +1,4 @@
 {
-	"http://www.fusioncharts.com/" : 1 , 
 	"http://www.fusioncharts.com/tour/" : 0.9 ,
 	"http://www.fusioncharts.com/features/" : 0.9 ,
 	"http://www.fusioncharts.com/tech-specs/" : 0.9 ,
@@ -10,6 +9,22 @@
 	"http://www.fusioncharts.com/extensions/" :0.9 ,
 	"http://www.fusioncharts.com/press/" :0.9 ,
 	"http://www.fusioncharts.com/partners/" :0.9 ,
+	"http://www.fusioncharts.com/version-history/":0.9,
+	"http://www.fusioncharts.com/support/": 0.9,
+	"http://www.fusioncharts.com/contact-sales/":0.9,
+	"http://www.fusioncharts.com/contact-support/": 0.9,
+	"http://www.fusioncharts.com/download/":0.9,
+	"http://www.fusioncharts.com/jquery-charts/":0.9,
+	"http://www.fusioncharts.com/angularjs-charts/":0.9,
+	"http://www.fusioncharts.com/php-charts/":0.9,
+	"http://www.fusioncharts.com/asp-net-charts/":0.9,
+	"http://www.fusioncharts.com/jsp-charts/":0.9,
+	"http://www.fusioncharts.com/react-charts/":0.9,
+	"http://www.fusioncharts.com/reactjs-charts/":0.9,
+	"http://www.fusioncharts.com/ruby-on-rails-charts/":0.9,
+	"http://www.fusioncharts.com/tutorials/":0.9,
+	"http://www.fusioncharts.com/about/":0.9,
+	"http://www.fusioncharts.com/privacy-policy/":0.8,
 	"http://www.fusioncharts.com/resources/" :0.8,
 	"http://www.fusioncharts.com/whitepapers/" :0.8,
 	"http://www.fusioncharts.com/chart-primers/" :0.8,
@@ -21,5 +36,5 @@
 	"http://www.fusioncharts.com/company/" : 0.4 ,
 	"http://www.fusioncharts.com/company/team/" : 0.4 ,
 	"http://www.fusioncharts.com/company/careers/" : 0.4 ,
-	"http://www.fusioncharts.com/blog/" : 0.0
+	"http://www.fusioncharts.com/blog/" : 0.7
 }

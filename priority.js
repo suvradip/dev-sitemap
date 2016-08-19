@@ -1,12 +1,16 @@
-var priority_json = require("./priority.json");
+var prioritylist = require("./priority.json");
 
-exports.getPriority = function(url){
+exports.get = function(url){
 
-	var val = -1;
-	for (var key in priority_json) {
+	var val;
+	for (var key in prioritylist) {
     if(url.indexOf(key) !== -1){
-   		val = priority_json[key];
+   		val = prioritylist[key];
+      break;
     }
 	}
-	return val;
+  if(!val && typeof val == "undefined")
+    return 0.7;
+  else
+    return val;
 };
