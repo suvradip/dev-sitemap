@@ -12,28 +12,24 @@
 
 /*jshint scripturl:true*/
 
-var GST= {};
+var request,
+    cheerio,
+    domainName,
+    GST,
+    priority,
+    path;
 
-page = require('webpage').create();
+request = require("request");
+cheerio = require('cheerio');
+priority = require("./priority");
+path = require('path'); 
+
+GST = {};
 GST.fs   = require('fs');
-phantom.onError = function(){};
-// ignoring all console log of the site
-page.onConsoleMessage = (function(msg) {
-  //console.log("nothing to print.");
-});
 
-// ignoring all javascript error of the site
-page.onError = (function(msg) {
-  //console.log("Nothing to print.");
-});
+domainName = 'http://www.fusioncharts.com';
 
-// ignoring all javascript alert of the page
-page.onAlert = (function(msg) {
-  //console.log("Nothing to print.");
-});
-
-
-GST.linkArray = [];
+GST.linkArray = [domainName];
 GST.counter = -1;
 GST.init = false;
 GST.pointer = 0;
@@ -46,16 +42,17 @@ GST.sitemap = (function(links){
       today = (new Date()).toISOString().slice(0,10);
      
   for(var i=0; i<links.length; i++){
+    var link = links[i].split("&").join("&amp;").split(".com//").join(".com/");
     data = data + "\n    <url>";
-    data = data + "\n        <loc>" + links[i].split("&").join("&amp;").split(".com//").join(".com/") + "</loc>";
+    data = data + "\n        <loc>" + link + "</loc>";
     data = data + "\n        <lastmod>"+ today + "</lastmod>";
-    data = data + "\n        <changefreq>daily</changefreq>";
-    data = data + "\n        <priority>0.7</priority>";
+    data = data + "\n        <changefreq>weekly</changefreq>";
+    data = data + "\n        <priority>"+priority.getPriority(link)+"</priority>";
     data = data + "\n    </url>";
   }
 
   data = data + "\n</urlset>"; 
-  GST.fs.write('output/sitemap.xml', data);
+  GST.fs.writeFileSync('output/sitemap.xml', data);
 }); //end of GST.sitemap
 
 GST.log = (function(code){
@@ -134,45 +131,30 @@ GST.clearTimer = (function() {
   clearTimeout(GST.timer);
 }); // end of GST.clearTimer
 
-GST.readContents = (function(fcobj){
+GST.readContents = (function(body){
 
  GST.log(102);
-  var data ;
-  data= page.evaluate(function() {
-    var anchors = document.getElementsByTagName('a'), 
-    index, 
-    href,
-    links = [];
-
-    for(index=0; index<anchors.length; index++) {
-      href = anchors[index].href;
-      if(href !== "" && href !== 'javascript:void(0)' && typeof href !== 'object' &&
-        href.indexOf('http://www.fusioncharts.com/') > -1 && href.indexOf('.html#') === -1) {
+  var data;
+  var links = [];
+  //data= page.evaluate(function() {
+    $ = cheerio.load(body);
+    $('body').find('a').each(function() {
+      var href = $(this).attr('href');
+      if(GST.filterLink(href)) {
         href = href.split('#')[0];
         href = href.split('?PageSpeed=noscript')[0];
         href = href.split('&PageSpeed=noscript')[0];
         href = href.split("?replytocom=")[0];
         href = href.split("&replytocom=")[0];
+        if (href.indexOf('/') === 0)
+          href = domainName + href;
+
         links.push(href);
       }
-    } //end of for loop*/
+    });
 
-    return links;
-  });
   
-  //console.log(data.length);
-  
-  if( data && data !== null ) {
-    var index,
-        href,
-        links = [];
-
-    for(index=0; index<data.length; index++) {
-      href = data[index];
-      if(GST.filterLink(href)) 
-        links.push(href);
-    } //end of for loop*/
-
+  if( links && links !== null ) {
     links = GST.removeDuplicate(links);
     var newData = [];
     newData = newData.concat(GST.linkArray);
@@ -196,13 +178,17 @@ GST.filterLink = (function(url){
     return false;
 
   //this domain name allow
-  if(url.indexOf('fusioncharts.com') > -1)
-    flag = true;
+  if(url.indexOf('http://www.fusioncharts.com/') === -1)
+    return false;
   //this section is not allowed to index
-  if(url.indexOf('fusioncharts.com/dev') > -1)
-    flag = false;
+  if(url.indexOf('http://www.fusioncharts.com/dev') !== -1)
+    return false;
   
   //more types of url filtering
+  if(url.indexOf('javascript:void(0)') !== -1)
+    flag = false;
+  if(typeof url === 'object')
+    flag = false;
   if(url.indexOf('#') > -1)
     flag = false;
   if(url.indexOf('mailto') > -1)
@@ -219,7 +205,11 @@ GST.filterLink = (function(url){
     flag = false;
   if(url.indexOf('.tif') > -1)
     flag = false;
-  if(url.indexOf('eps') > -1)
+  if(url.indexOf('.eps') > -1)
+    flag = false;
+  if(url.indexOf('.jpg') > -1)
+    flag = false;
+  if(url.indexOf('.png') > -1)
     flag = false;
 
   return flag;
@@ -238,6 +228,11 @@ GST.escapeLink = (function(string){
   flag = false;
   else if (string.match(/&attributeName=/))
   flag = false;
+  else if (string.indexOf(".zip") !== -1)
+  flag = false;
+  else if (string.indexOf(".pdf") !== -1)
+  flag = false;
+
 
   return flag;
 }); // end of GST.escapeLink
@@ -249,24 +244,19 @@ GST.openLink = (function() {
 
   if (GST.init && GST.counter >= GST.linkArray.length ) {
     GST.sitemap(GST.linkArray);
-    GST.fs.write('output/stack.json', JSON.stringify(GST.prepareStack(), null, 4));
+    GST.fs.writeFileSync('output/stack.json', JSON.stringify(GST.prepareStack(), null, 4));
     GST.log(108);
     GST.log(105);
-    phantom.exit();
+    process.exit();
   } 
     
   GST.init = true;
 
- if(GST.counter === (GST.pointer + 10)) {
-    GST.fs.write('output/stack.json', JSON.stringify(GST.prepareStack(), null, 4));
-    phantom.exit();
- } 
-
   GST.log(108);  
   if(GST.escapeLink(GST.linkArray[GST.counter])) {
-    page.open(GST.linkArray[GST.counter], function(status) {
-      if (status == 'success') {
-          GST.readContents();
+    request(GST.linkArray[GST.counter], function (error, response, body) {
+      if (!error && response.statusCode == 200) {
+        GST.readContents(body);
       } else {
         //try to open a link 5 times, if fail then proceed to next link and log this link to a file
         if(GST.retryCounter < 5){
@@ -280,11 +270,12 @@ GST.openLink = (function() {
         } else {
           GST.retryCounter = 0;
           console.log("discarding this link. :(");
-          GST.fs.write("output/retry.txt", "\n"+GST.linkArray[GST.counter], 'a');
+          GST.fs.appendFileSync("output/retry.txt", "\n"+GST.linkArray[GST.counter]);
           GST.openLink();
-        }    
-      } //end of if condition
-    }); //end page.open
+        } 
+      }
+    });
+
   } else {
     GST.log(107);
     GST.openLink();
@@ -294,8 +285,8 @@ GST.openLink = (function() {
 GST.runProgram = (function(){
 
   var fileData;
-  if (GST.fs.exists('output/stack.json'))
-    fileData = GST.fs.read('output/stack.json');
+  if (GST.fs.existsSync('output/stack.json'))
+    fileData = GST.fs.readFileSync('output/stack.json', 'utf-8');
 
   if(fileData) { 
     fileData     = JSON.parse(fileData); 
@@ -306,6 +297,13 @@ GST.runProgram = (function(){
   } else {
     GST.openLink();
   }
+
+//in every 15sec, url's file will be updated.
+setInterval(function(){
+  console.log("file-write");
+  GST.fs.writeFileSync('output/stack.json', JSON.stringify(GST.prepareStack(), null, 4));
+}, 15000);
+
 }); // end of GST.runProgram
 
 GST.grabCommandLine = (function(){
@@ -322,7 +320,7 @@ GST.grabCommandLine = (function(){
 
 
 (function(){
-  GST.grabCommandLine ();  
+  //GST.grabCommandLine ();  
   GST.runProgram();   
 })();
 
