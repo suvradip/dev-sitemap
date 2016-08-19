@@ -1,0 +1,22 @@
+{
+  "name": "dev-sitemap",
+  "version": "0.0.0",
+  "description": "sitemap generation code for dev center",
+  "main": "sitemap.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/suvradip/dev-sitemap.git"
+  },
+  "author": "",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/suvradip/dev-sitemap/issues"
+  },
+  "dependencies": {
+    "request": "~2.74.0",
+    "cheerio": "~0.20.0"
+  }
+}

@@ -1,13 +1,6 @@
 /*
  *  How to run this program ?
- *  sh ./runSitemap.sh
-
- *  Why are we using shell scripts to run this program ?
- *  Because phantomJs maybe crash after opening the 200+ links. so to avoid this situation we are just breaking the 
- *  link stack and parsing the each link. 
- *
- *  Dev center may be have 38,000K links
- *  require phantomjs v1.9.8
+ *  node sitemap.js
  */
 
 /*jshint scripturl:true*/
