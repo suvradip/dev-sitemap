@@ -210,7 +210,6 @@ GST.filterLink = (function(url){
   return flag;
 });
 
-
 GST.escapeLink = (function(string){
 
   if(!string)
@@ -221,7 +220,7 @@ GST.escapeLink = (function(string){
   flag = false;
   else if (string.match(/\/maps\/marker-data\//))
   flag = false;
-  else if (string.match(/&attributeName=/))
+  else if (string.match(/attributeName=/))
   flag = false;
   else if (string.indexOf(".zip") !== -1)
   flag = false;
@@ -293,29 +292,14 @@ GST.runProgram = (function(){
     GST.openLink();
   }
 
-//in every 15sec, url's file will be updated.
-setInterval(function(){
-  console.log("file-write");
-  GST.fs.writeFileSync('output/stack.json', JSON.stringify(GST.prepareStack(), null, 4));
-}, 15000);
-
+  //in every 15sec, url's file will be updated.
+  setInterval(function(){
+    console.log("file-write");
+    GST.fs.writeFileSync('output/stack.json', JSON.stringify(GST.prepareStack(), null, 4));
+  }, 15000);
 }); // end of GST.runProgram
 
-GST.grabCommandLine = (function(){
-
-  var system = require('system');
-
-  if(typeof system.args[1] =="undefined") {
-      GST.log(109);
-      phantom.exit();
-  } else {
-      GST.linkArray.push(system.args[1]);
-  }    
-}); //end of GST.grabCommandLine
-
-
 (function(){
-  //GST.grabCommandLine ();  
   GST.runProgram();   
 })();
 
