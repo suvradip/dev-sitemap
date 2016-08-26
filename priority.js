@@ -9,7 +9,9 @@ exports.get = function(url){
       break;
     }
 	}
-  if(!val && typeof val == "undefined")
+  if(url === "http://www.fusioncharts.com/")
+    return 1;
+  else if(!val && typeof val == "undefined")
     return 0.7;
   else
     return val;

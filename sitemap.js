@@ -20,15 +20,17 @@ path = require('path');
 GST = {};
 GST.fs   = require('fs');
 
-domainName = 'http://www.fusioncharts.com';
-
+domainName = 'http://www.fusioncharts.com/';
+GST.output_Dir = "output";
 GST.linkArray = [domainName];
 GST.counter = -1;
 GST.init = false;
 GST.pointer = 0;
 GST.timer = "";
 GST.retryCounter = 0;
-
+GST.final_array = [];
+GST.check_count = 0;
+GST.log_status = 0;
 GST.sitemap = (function(links){
   console.log('Generating sitemap');
   var data = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<urlset xmlns=\"http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9\">",
@@ -47,6 +49,12 @@ GST.sitemap = (function(links){
   data = data + "\n</urlset>"; 
   GST.fs.writeFileSync('output/sitemap.xml', data);
 }); //end of GST.sitemap
+
+GST.createDir = (function(){
+    if (!GST.fs.existsSync(GST.output_Dir)) {
+       GST.fs.mkdirSync(GST.output_Dir);
+    }
+});
 
 GST.log = (function(code){
 
@@ -141,7 +149,7 @@ GST.readContents = (function(body){
         href = href.split("&replytocom=")[0];
         if (href.indexOf('/') === 0)
           href = domainName + href;
-        if(href.charAt(href.length-1) === "/")
+        if(href.charAt(href.length-1) !== "/")
           href = href + "/";
 
         links.push(href);
@@ -178,7 +186,8 @@ GST.filterLink = (function(url){
   //this section is not allowed to index
   if(url.indexOf('http://www.fusioncharts.com/dev') !== -1)
     return false;
-  
+  if(url.indexOf('http://www.fusioncharts.com/blog/page/') !== -1)
+    return false;
   //more types of url filtering
   if(url.indexOf('javascript:void(0)') !== -1)
     flag = false;
@@ -233,55 +242,77 @@ GST.escapeLink = (function(string){
 
 GST.openLink = (function() {
 
-  GST.setTimer(); 
-  GST.counter += 1;
+  if(GST.log_status !== 105 ) { // Check whether the map generation is complete or not
+    GST.setTimer(); 
+    GST.counter += 1;
 
-  if (GST.init && GST.counter >= GST.linkArray.length ) {
-    GST.sitemap(GST.linkArray);
-    GST.fs.writeFileSync('output/stack.json', JSON.stringify(GST.prepareStack(), null, 4));
-    GST.log(108);
-    GST.log(105);
-    process.exit();
-  } 
-    
-  GST.init = true;
+    if (GST.init && GST.counter >= GST.linkArray.length ) {
+      GST.fs.writeFileSync('output/stack.json', JSON.stringify(GST.prepareStack(), null, 4));
+      GST.log(108);
+      GST.log(105);
+      GST.log_status = 105;
+    } 
+      
+    GST.init = true;
 
-  GST.log(108);  
-  if(GST.escapeLink(GST.linkArray[GST.counter])) {
-    request(GST.linkArray[GST.counter], function (error, response, body) {
-      if (!error && response.statusCode == 200) {
-        GST.readContents(body);
-      } else {
-        //try to open a link 5 times, if fail then proceed to next link and log this link to a file
-        if(GST.retryCounter < 5){
-          GST.retryCounter +=1;
-          GST.counter -= 1;
-          GST.log(106);
-          GST.clearTimer();
-          setTimeout(function() {
-              GST.openLink();
-          }, 10000); 
+    GST.log(108);  
+    if(GST.escapeLink(GST.linkArray[GST.counter])) {
+      request(GST.linkArray[GST.counter], function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+          GST.readContents(body);
         } else {
-          GST.retryCounter = 0;
-          console.log("discarding this link. :(");
-          GST.fs.appendFileSync("output/retry.txt", "\n"+GST.linkArray[GST.counter]);
-          GST.openLink();
-        } 
-      }
-    });
+          //try to open a link 5 times, if fail then proceed to next link and log this link to a file
+          if(GST.retryCounter < 5){
+            GST.retryCounter +=1;
+            GST.counter -= 1;
+            GST.log(106);
+            GST.clearTimer();
+            setTimeout(function() {
+                GST.openLink();
+            }, 10000); 
+          } else {
+            GST.retryCounter = 0;
+            console.log("discarding this link. :(");
+            GST.fs.appendFileSync("output/retry.txt", "\n"+GST.linkArray[GST.counter]);
+            GST.openLink();
+          } 
+        }
+      });
 
+    } else {
+      GST.log(107);
+      GST.openLink();
+    }
   } else {
-    GST.log(107);
-    GST.openLink();
+    GST.log(105);
   }   
 }); // end of GST.openLink
+
+// Check for the redirection of the url
+GST.check_redirect = (function(url) {
+  var redirect_url = url;
+  var r = request.get(url, function (err, res, body) {
+    if(!err && (res.statusCode === 301 || res.statusCode === 200 )){
+      if(url !== r.uri.href){
+        console.log("Redirection Found");
+        //Log All the redirected Link
+        GST.fs.appendFileSync('output/redirect_log.txt', "\n" + redirect_url + " --> " + r.uri.href + "\n");    
+        redirect_url = r.uri.href ;
+      }
+    }
+    else {
+        GST.fs.appendFileSync('output/error_log.txt', "\n" + redirect_url); // Logging all the Error such as 404 , 403 etc. 
+      }
+    });
+  GST.final_array.push(redirect_url);
+});
 
 GST.runProgram = (function(){
 
   var fileData;
   if (GST.fs.existsSync('output/stack.json'))
     fileData = GST.fs.readFileSync('output/stack.json', 'utf-8');
-
+  
   if(fileData) { 
     fileData     = JSON.parse(fileData); 
     GST.counter   = fileData.pointer ;
@@ -297,9 +328,29 @@ GST.runProgram = (function(){
     console.log("file-write");
     GST.fs.writeFileSync('output/stack.json', JSON.stringify(GST.prepareStack(), null, 4));
   }, 15000);
+  
+  //Start the check for the redirection of url after 5 min
+  setTimeout(function(){
+    setInterval(function(){
+    for(var key = GST.check_count ; key < GST.linkArray.length ; key++) {
+      GST.check_count ++ ;
+      GST.check_redirect(GST.linkArray[key]);
+    }
+    //Write into the Full_stack Json file
+    GST.fs.writeFile('output/final_stack.json', JSON.stringify(GST.final_array ,null , 4));
+    console.log("GST.final_array.length -> " + GST.final_array.length + "  length-|-  " + GST.linkArray.length + "  Pointer -|-  " + GST.pointer);
+    //Termineate once complete
+    if(GST.final_array.length == GST.linkArray.length && GST.log_status == 105) {
+      GST.sitemap(GST.final_array);
+      process.exit();
+    }
+  },60000);},60000);
+
 }); // end of GST.runProgram
 
 (function(){
+  //To check for the output directory availbility
+  GST.createDir();
   GST.runProgram();   
 })();
 
