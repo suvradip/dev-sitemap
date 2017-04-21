@@ -175,19 +175,23 @@ GST.readContents = (function(body){
 }); //end of GST.readContent
 
 GST.filterLink = (function(url){
-  var flag = true;
+  var flag = true,
+      _m = url.match(/https?:\/\/www\.fusioncharts\.com\/blog\/([0-9\/]*)(.*)\/?$/);
 
   if(!url)
     return false;
 
   //this domain name allow
-  if(url.indexOf('http://www.fusioncharts.com/') === -1)
-    return false;
+  if(url.indexOf('http://www.fusioncharts.com/blog/') === -1)
+    return false; 
   //this section is not allowed to index
   if(url.indexOf('http://www.fusioncharts.com/dev') !== -1)
     return false;
   if(url.indexOf('http://www.fusioncharts.com/blog/page/') !== -1)
     return false;
+  //we are not indexing http://www.fusioncharts.com/blog/2013/4/ this type of links  
+  if(typeof _m !== "undefined" && _m[1] !== "" && _m[2] === "" )
+    return false;    
   //more types of url filtering
   if(url.indexOf('javascript:void(0)') !== -1)
     flag = false;
