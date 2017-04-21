@@ -182,7 +182,7 @@ GST.filterLink = (function(url){
     return false;
 
   //this domain name allow
-  if(url.indexOf('http://www.fusioncharts.com/blog/') === -1)
+  if(url.indexOf('http://www.fusioncharts.com/') === -1)
     return false; 
   //this section is not allowed to index
   if(url.indexOf('http://www.fusioncharts.com/dev') !== -1)
