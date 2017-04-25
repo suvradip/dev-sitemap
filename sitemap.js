@@ -136,7 +136,8 @@ GST.clearTimer = (function() {
 GST.readContents = (function(fcobj){
 
  GST.log(102);
-  var data ;
+  var data,
+  	  filterLinks = [];
   data= page.evaluate(function() {
     var anchors = document.getElementsByTagName('a'), 
     index, 
@@ -146,8 +147,9 @@ GST.readContents = (function(fcobj){
     for(index=0; index<anchors.length; index++) {
       href = anchors[index].href;
       
-      if(href !== "" && href !== 'javascript:void(0)' && typeof href !== 'object' &&
-       href.indexOf('http://127.0.0.1:4000/paradocs/jekyll/out/') > -1 && href.indexOf('.html#') === -1) 
+      // if(href !== "" && href !== 'javascript:void(0)' && typeof href !== 'object' &&
+      //  href.indexOf('http://127.0.0.1:4000/paradocs/jekyll/out/') > -1 && href.indexOf('.html#') === -1) 
+     if(href !== "" && href !== 'javascript:void(0)' && typeof href !== 'object') 
         links.push(href);
     } //end of for loop*/
 
@@ -157,7 +159,14 @@ GST.readContents = (function(fcobj){
   //console.log(data.length);
   
   if( data && data !== null ) {
-    data = GST.removeDuplicate(data);
+  	for(var _i =0; _i <= data.length; _i++) {  		
+  		if(GST.filterLink(data[_i]))
+  			filterLinks.push(data[_i]);
+  	}
+  	console.log(data.length, filterLinks.length);
+    //data = GST.removeDuplicate(data);
+    data = GST.removeDuplicate(filterLinks);
+
     var newData = [];
     newData = newData.concat(GST.linkArray);
     newData = newData.concat(data); 
@@ -173,19 +182,67 @@ GST.readContents = (function(fcobj){
   }
 }); //end of GST.readContent
 
+GST.filterLink = (function(url){
+  var flag = true;
+
+  if(!url)
+    return false;
+
+  if(url.indexOf('http://127.0.0.1:4000/paradocs/jekyll/out/') === -1)
+  	flag = false;
+  
+  // if(url.indexOf('.html#') > -1)
+  // 	flag = false;
+  
+  if (url.match(/&?attributeName=/))
+  	flag = false;
+
+  if(url.indexOf('mailto') > -1)
+    flag = false;
+  if(url.indexOf('?q=') > -1)
+    flag = false;
+
+  //filter files
+  if(url.indexOf('.json') > -1)
+    flag = false;
+  if(url.indexOf('.xml') > -1)
+    flag = false;
+  if(url.indexOf('.gif') > -1)
+    flag = false;
+  if(url.indexOf('.tif') > -1)
+    flag = false;
+  if(url.indexOf('.eps') > -1)
+    flag = false;
+  if(url.indexOf('.jpg') > -1)
+    flag = false;
+  if(url.indexOf('.png') > -1)
+    flag = false;
+  if(url.indexOf('.zip') > -1)
+    flag = false;
+
+  //console.log(url, flag);
+  return flag;
+});
+
+
 GST.escapeLink = (function(string){
 
   if(!string)
   return false;  
 
+  //console.log(string);	
   var flag = true;
   if(string.match(/\/maps\/spec-sheets\//))
   flag = false;
-  else if (string.match(/\/maps\/marker-data\//))
+  if (string.match(/\/maps\/marker-data\//))
   flag = false;
-  else if (string.match(/&attributeName=/))
+  if (string.match(/&?attributeName=/))
   flag = false;
-
+  if(string.match(/chart-attributes.html\?chart=/))
+  flag = false;
+  if(string.indexOf('.html#') > -1)
+  flag = false;	
+ // console.log(string, flag);	
   return flag;
 }); // end of GST.escapeLink
 
